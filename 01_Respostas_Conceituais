@@ -1,0 +1,49 @@
+QUESTÕES
+
+Qual o objetivo do comando cache em Spark?
+
+A maior parte das operações em um RDD são lazy, o que significa que, na prática, resultam apenas em uma abstração para um conjunto de instruções a serem executadas. Essas operações só são realmente executadas através de ações, que não são operações lazy, pois só podem ser avaliadas a partir da obtenção de valores do RDD. Isso pode, por exemplo, tornar códigos iterativos mais ineficientes, pois ações executadas repetidamente sobre um mesmo conjunto de dados disparam a ação de todas as operações lazy necessárias em cada uma das iterações, mesmo que resultados intermediários sejam iguais, como no caso da leitura de um arquivo. O uso do comando cache ajuda a melhorar a eficiência do código nesse tipo de cenário, pois permite que resultados intermediários de operações lazy possam ser armazenados e reutilizados repetidamente.
+
+
+O mesmo código implementado em Spark é normalmente mais rápido que a implementação equivalente em MapReduce. Por quê?
+
+Existem alguns fatores no desenho dessas ferramentas que tornam as aplicações desenvolvidas em MapReduce geralmente mais lentas que aquelas que utilizam Spark. Um desses fatores é o uso de memória. É comum a necessidade de rodar vários jobs MapReduce em sequência em vez de um único job. Ao usar MapReduce, o resultado de cada job é escrito em disco, e precisa ser lido novamente do disco quando passado ao job seguinte. Spark, por outro lado, permite que resultados intermediários sejam passados diretamente entre as operações a serem executadas através do caching desses dados em memória, ou até mesmo que diversas operações possam ser executadas sobre um mesmo conjunto de dados em cache, reduzindo a necessidade de escrita/leitura em disco. Adicionalmente, mesmo em cenários onde ocorre a execução de apenas um job, o uso de Spark tende a ter desempenho superior ao MapReduce. Isso ocorre porque jobs Spark podem ser iniciados mais rapidamente, pois para cada job MapReduce uma nova instância da JVM é iniciada, enquanto Spark mantém a JVM em constantemente em execução em cada nó, precisando apenas iniciar uma nova thread, que é um processo extremamente mais rápido.
+
+Qual é a função do SparkContext ?
+
+Atravès do SparkContext passam as configurações que serão utilizadas na alocação de recursos, como memória e processadores, pelos executors. Ele serve tambem para criar RDDs, para colocar Jobs em execução, para criar variáveis de broadcast e acumuladores.
+Assim sendo, o SparkContext pode ser considerado como um cliente do ambiente de execução Spark.
+
+Explique com suas palavras o que é Resilient Distributed Datasets (RDD)?
+
+RDDs são a principal abstração de dados do Spark. Eles são chamados Resilient por serem tolerantes à falha, isto é, são capazes de recomputar partes de dados perdidas devido a falhas nos nós e são Distributed porque podem estar divididos em partições através de diferentes nós em um cluster. Além dessas características, outras que podem ser destacadas são: RDDs são imutáveis, são objetos para leitura apenas, e só podem ser mudados através de transformações que resultam na criação de novos RDDs; Eles podem ser operados em paralelo, isto é, operações podem ser executadas sobre diferentes partições de um mesmo RDD ao mesmo tempo; RDDs são avaliados de forma "preguiçosa", de forma que os dados só ficam acessíveis e só são transformados quando alguma ação é executada (como mencionado na primeira questão); além disso RDDs têm seus valores categorizados em tipos, como números inteiros ou de ponto flutuante, strings, pares...
+
+GroupByKey é menos eficiente que reduceByKey em grandes dataset. Por quê?
+
+Sintaxe - groupByKey:
+sparkContext.textFile("hdfs://")
+                    .flatMap(line => line.split(" ") )
+                    .map(word => (word,1))
+                    .groupByKey()
+                    .map((x,y) => (x,sum(y)) )
+                    
+sintaxe -- reduceByKey:
+sparkContext.textFile("hdfs://")
+                    .flatMap(line => line.split(" "))
+                    .map(word => (word,1))
+                    .reduceByKey((x,y)=> (x+y))
+
+O groupByKey pode causar problemas de disco quando os dados são enviados pela rede e coletados nos executores de redução por não realizar o cálculo de resultados parciais, neste sentido, um volume muito maior de dados é desnecessariamente transferido através dos executores.
+
+Ao passo que em reduceByKey, os dados são combinados em cada partição, apenas uma saída para uma chave em cada partição para enviar pela rede; ou seja; reduceByKey requer combinar todos os seus valores em outro valor exatamente com o mesmo tipo e  para obter um resultado parcial antes de passar esses dados para os executores que vão calcular o resultado final, resultando em um conjunto menor de dados sendo transferido.
+
+
+** Explique o que o código Scala abaixo faz **
+
+1. val textFile = sc . textFile ( "hdfs://..." )
+2. val counts = textFile . flatMap ( line => line . split ( " " ))
+3.           . map ( word => ( word , 1 ))
+4.           . reduceByKey ( _ + _ )
+5. counts . saveAsTextFile ( "hdfs://..." )
+
+O presente script lê um arquivo-texto (em L1). Depois, cada linha é "transformada/quebrada" em uma sequência de palavras e as sequencias correspondentes a cada linha são transformadas em uma única coleção de palavras (em L2). Cada palavra é então transformada em um mapeamente de [String, Inteiro] ou seja chave-valor, com String igual à própria palavra e Inteiro 1 (em L3) e agregando esses valores por chave usando a operação de soma (em L4). Por finish, a contagem de cada palavra  é realizada pelo RDD e é salvo em um arquivo texto (L5).
