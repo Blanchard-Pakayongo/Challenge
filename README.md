@@ -1,6 +1,6 @@
 # Challenge
 Semantix's Test - Data Engineer
-Aqui encontram se dois arquivos :
+Aqui encontram-se dois arquivos :
 
 1. respostas_conceitual_spark
 
